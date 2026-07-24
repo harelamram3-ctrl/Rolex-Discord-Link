@@ -6,3 +6,6 @@ commands:
   link:
     description: מקשר את שחקן המיינקראפט שלך לחשבון הדיסקורד
     usage: /link
+  profile:
+    description: פותח תפריט GUI עם פרופיל הדיסקורד והשחקן שלך
+    usage: /profile
