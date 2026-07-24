@@ -1,0 +1,8 @@
+name: DiscordLink
+version: 1.0
+main: com.example.discordlink.DiscordLinkPlugin
+api-version: 1.20
+commands:
+  link:
+    description: מקשר את שחקן המיינקראפט שלך לחשבון הדיסקורד
+    usage: /link
