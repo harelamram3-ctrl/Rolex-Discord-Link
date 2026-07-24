@@ -11,7 +11,7 @@ import java.util.UUID;
 public class DiscordListener extends ListenerAdapter {
 
     private final DiscordLinkPlugin plugin;
-    private final String ROLE_ID = "1530336293072932934"; // ה-ID של הרול שלך
+    private final String ROLE_ID = "1530336293072932934";
 
     public DiscordListener(DiscordLinkPlugin plugin) {
         this.plugin = plugin;
@@ -30,27 +30,35 @@ public class DiscordListener extends ListenerAdapter {
                 UUID playerUUID = plugin.getPendingCodes().remove(code);
                 Player player = Bukkit.getPlayer(playerUUID);
 
-                String mcName = (player != null) ? player.getName() : "שחקן";
-                String discordTag = event.getAuthor().getAsTag();
+                String mcName = (player != null) ? player.getName() : "Player";
+                String discordUser = event.getAuthor().getAsTag();
 
-                // שמירת המידע לפרופיל בשרת
-                plugin.getLinkedAccounts().put(playerUUID, discordTag);
+                plugin.getLinkedAccounts().put(playerUUID, discordUser);
 
-                // שינוי הניקניים בדיסקורד
-                event.getGuild().modifyNickname(event.getMember(), mcName).queue();
+                // ניסיון לשנות ניקניים
+                try {
+                    event.getGuild().modifyNickname(event.getMember(), mcName).queue(
+                        s -> {},
+                        f -> plugin.getLogger().warning("Failed to change nickname: " + f.getMessage())
+                    );
+                } catch (Exception ignored) {}
 
-                // מתן הרול בדיסקורד
-                Role role = event.getGuild().getRoleById(ROLE_ID);
-                if (role != null) {
-                    event.getGuild().addRoleToMember(event.getMember(), role).queue();
-                }
+                // ניסיון לתת רול
+                try {
+                    Role role = event.getGuild().getRoleById(ROLE_ID);
+                    if (role != null) {
+                        event.getGuild().addRoleToMember(event.getMember(), role).queue(
+                            s -> {},
+                            f -> plugin.getLogger().warning("Failed to add role: " + f.getMessage())
+                        );
+                    }
+                } catch (Exception ignored) {}
 
-                event.getChannel().sendMessage("✅ החשבון קושר בהצלחה! קיבלת את הרול בדיסקורד והשם שלך שונה ל-**" + mcName + "**.").queue();
+                event.getChannel().sendMessage("✅ החשבון קושר בהצלחה! משתמש הדיסקורד " + discordUser + " קושר למיינקראפט.").queue();
 
                 if (player != null && player.isOnline()) {
-                    player.sendMessage("§a[Discord] החשבון שלך קושר בהצלחה ל-§e" + discordTag + "§a! רשום §f/profile §aכדי לראות את הפרופיל.");
+                    player.sendMessage("§a[Discord] החשבון שלך קושר בהצלחה!");
                 }
-
             } else {
                 event.getChannel().sendMessage("❌ קוד אימות לא תקין או שפג תוקפו.").queue();
             }
