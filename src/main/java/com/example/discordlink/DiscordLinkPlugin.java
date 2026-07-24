@@ -31,6 +31,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
             try {
                 jda = JDABuilder.createDefault(token)
                         .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                        .addEventListeners(new DiscordListener(this)) // רישום הליסנר של דיסקורד
                         .build();
                 getLogger().info("הבוט של דיסקורד מתחבר...");
             } catch (Exception e) {
@@ -61,7 +62,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
         pendingCodes.put(code, player.getUniqueId());
 
         player.sendMessage(ChatColor.GREEN + "קוד הקישור שלך הוא: " + ChatColor.YELLOW + ChatColor.BOLD + code);
-        player.sendMessage(ChatColor.GRAY + "שלח את הקוד לבוט בדיסקורד!");
+        player.sendMessage(ChatColor.GRAY + "רשום בערוץ בדיסקורד: !link " + code);
 
         return true;
     }
@@ -74,5 +75,9 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    public Map<String, UUID> getPendingCodes() {
+        return pendingCodes;
     }
 }
