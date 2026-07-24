@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -41,6 +42,9 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
 
         if (getCommand("link") != null) getCommand("link").setExecutor(this);
         if (getCommand("profile") != null) getCommand("profile").setExecutor(this);
+
+        // הגנה על תפריט ה-GUI שלא יוכלו לקחת פריטים
+        Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
     }
 
     @Override
@@ -72,28 +76,65 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
     private void openProfileGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_BLUE + "פרופיל שחקן");
 
-        ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) skull.getItemMeta();
-
-        if (meta != null) {
-            meta.setOwningPlayer(player);
-            meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + player.getName());
-
-            List<String> lore = new ArrayList<>();
-            lore.add("");
-            lore.add(ChatColor.GRAY + "סטטוס אימות: " + (linkedAccounts.containsKey(player.getUniqueId()) ? ChatColor.GREEN + "מאומת ✔" : ChatColor.RED + "לא מאומת ✖"));
-            
-            if (linkedAccounts.containsKey(player.getUniqueId())) {
-                lore.add(ChatColor.GRAY + "חשבון דיסקורד: " + ChatColor.AQUA + linkedAccounts.get(player.getUniqueId()));
-            } else {
-                lore.add(ChatColor.YELLOW + "הקלד /link כדי לקשר את החשבון!");
-            }
-
-            meta.setLore(lore);
-            skull.setItemMeta(meta);
+        // 1. באנר עליון (זכוכית סגולה)
+        ItemStack banner = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+        ItemMeta bannerMeta = banner.getItemMeta();
+        if (bannerMeta != null) {
+            bannerMeta.setDisplayName(" ");
+            banner.setItemMeta(bannerMeta);
+        }
+        for (int i = 0; i < 9; i++) {
+            gui.setItem(i, banner);
         }
 
+        // 2. תמונת פרופיל (הראש של השחקן באמצע)
+        ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
+        if (skullMeta != null) {
+            skullMeta.setOwningPlayer(player);
+            skullMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + player.getName());
+
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Discord Tag: " + ChatColor.WHITE + (linkedAccounts.getOrDefault(player.getUniqueId(), "לא מקושר")));
+            lore.add("");
+            lore.add(ChatColor.GRAY + "סטטוס: " + (linkedAccounts.containsKey(player.getUniqueId()) ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
+            skullMeta.setLore(lore);
+            skull.setItemMeta(skullMeta);
+        }
         gui.setItem(13, skull);
+
+        // 3. תיאור / אודות (About Me)
+        ItemStack aboutBook = new ItemStack(Material.WRITABLE_BOOK);
+        ItemMeta aboutMeta = aboutBook.getItemMeta();
+        if (aboutMeta != null) {
+            aboutMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "📝 אודות (About Me)");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            lore.add(ChatColor.YELLOW + "Owner in: " + ChatColor.WHITE + "RolexNetWork ⚡ Offical");
+            lore.add(ChatColor.AQUA + "Link: " + ChatColor.UNDERLINE + "discord.gg/BTfmJQhnrC");
+            lore.add(ChatColor.GRAY + "RolexNetWork - ComeBack");
+            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            aboutMeta.setLore(lore);
+            aboutBook.setItemMeta(aboutMeta);
+        }
+        gui.setItem(11, aboutBook);
+
+        // 4. תפקידים ותגים בדיסקורד (Roles)
+        ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
+        ItemMeta rolesMeta = rolesItem.getItemMeta();
+        if (rolesMeta != null) {
+            rolesMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "🏷️ תפקידים בדיסקורד");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            lore.add(ChatColor.GOLD + "• Owner");
+            lore.add(ChatColor.LIGHT_PURPLE + "• RolexNetWork Booster");
+            lore.add(ChatColor.GREEN + "• MC Real player");
+            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            rolesMeta.setLore(lore);
+            rolesItem.setItemMeta(rolesMeta);
+        }
+        gui.setItem(15, rolesItem);
+
         player.openInventory(gui);
     }
 
