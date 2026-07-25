@@ -62,7 +62,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
         if (label.equalsIgnoreCase("link")) {
             if (isLinked(player.getUniqueId())) {
-                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! הקלד /profile לצפייה בפרטים.");
+                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! רשום /profile לצפייה בפרטים.");
                 return true;
             }
 
@@ -83,84 +83,112 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
     }
 
     private void openProfileGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_BLUE + "פרופיל שחקן");
+        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "פרופיל שחקן");
 
-        // 1. באנר עליון
-        ItemStack banner = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
-        ItemMeta bannerMeta = banner.getItemMeta();
-        if (bannerMeta != null) {
-            bannerMeta.setDisplayName(" ");
-            banner.setItemMeta(bannerMeta);
+        // 1. באנר עליון ותחתון (זכוכית סגולה ואפורה)
+        ItemStack topGlass = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+        ItemMeta glassMeta = topGlass.getItemMeta();
+        if (glassMeta != null) {
+            glassMeta.setDisplayName(" ");
+            topGlass.setItemMeta(glassMeta);
         }
-        for (int i = 0; i < 9; i++) {
-            gui.setItem(i, banner);
+
+        ItemStack fillGlass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fillMeta = fillGlass.getItemMeta();
+        if (fillMeta != null) {
+            fillMeta.setDisplayName(" ");
+            fillGlass.setItemMeta(fillMeta);
+        }
+
+        // מילוי ה-GUI ברקע יפה
+        for (int i = 0; i < 27; i++) {
+            if (i < 9 || i >= 18) {
+                gui.setItem(i, topGlass);
+            } else {
+                gui.setItem(i, fillGlass);
+            }
         }
 
         boolean linked = isLinked(player.getUniqueId());
         String discordId = getDiscordId(player.getUniqueId());
 
-        // 2. תמונת פרופיל (הראש)
+        Member discordMember = null;
+        if (linked && jda != null && !jda.getGuilds().isEmpty() && discordId != null) {
+            try {
+                Guild guild = jda.getGuilds().get(0);
+                discordMember = guild.retrieveMemberById(discordId).complete();
+            } catch (Exception ignored) {}
+        }
+
+        // 2. ראש השחקן (מרכז)
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         if (skullMeta != null) {
             skullMeta.setOwningPlayer(player);
-            skullMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + player.getName());
+            skullMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "👤 " + player.getName());
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "סטטוס: " + (linked ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
+            lore.add(ChatColor.GRAY + "סטטוס קישור: " + (linked ? ChatColor.GREEN + "● מקושר ומאומת" : ChatColor.RED + "● לא מקושר"));
             if (!linked) {
-                lore.add(ChatColor.YELLOW + "רשום /link כדי לקשר את החשבון!");
+                lore.add(" ");
+                lore.add(ChatColor.YELLOW + "💡 הקלד /link כדי לקשר את החשבון!");
             }
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
             skullMeta.setLore(lore);
             skull.setItemMeta(skullMeta);
         }
         gui.setItem(13, skull);
 
-        // 3. אודות
+        // 3. ספר אודות (כולל פרטי דיסקורד)
         ItemStack aboutBook = new ItemStack(Material.WRITABLE_BOOK);
         ItemMeta aboutMeta = aboutBook.getItemMeta();
         if (aboutMeta != null) {
-            aboutMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "📝 אודות השחקן");
+            aboutMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "📜 אודות השחקן");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
             lore.add(ChatColor.GRAY + "שם במשחק: " + ChatColor.WHITE + player.getName());
-            lore.add(ChatColor.GRAY + "מצב אימות: " + (linked ? ChatColor.GREEN + "מאושר ✔" : ChatColor.RED + "לא מקושר ✖"));
-            lore.add(ChatColor.DARK_GRAY + "-------------------");
+
+            if (linked && discordMember != null) {
+                lore.add(ChatColor.GRAY + "דיסקורד: " + ChatColor.AQUA + discordMember.getUser().getAsTag());
+                lore.add(ChatColor.GRAY + "כינוי בשרת: " + ChatColor.YELLOW + discordMember.getEffectiveName());
+            } else if (linked) {
+                lore.add(ChatColor.GRAY + "דיסקורד: " + ChatColor.GREEN + "מקושר (מידע בטעינה)");
+            } else {
+                lore.add(ChatColor.GRAY + "דיסקורד: " + ChatColor.RED + "לא מקושר");
+            }
+
+            lore.add(ChatColor.GRAY + "אימות: " + (linked ? ChatColor.GREEN + "מאושר ✔" : ChatColor.RED + "חסר ✖"));
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
             aboutMeta.setLore(lore);
             aboutBook.setItemMeta(aboutMeta);
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים בדיסקורד (משיכה ישירה מדיסקורד)
+        // 4. תפקידים בדיסקורד
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
-            rolesMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "🏷️ תפקידים בדיסקורד");
+            rolesMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "⭐ תפקידים בדיסקורד");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
 
-            if (linked && jda != null && !jda.getGuilds().isEmpty() && discordId != null) {
-                try {
-                    Guild guild = jda.getGuilds().get(0);
-                    // משיכה ישירה משרתי דיסקורד בלייב
-                    Member member = guild.retrieveMemberById(discordId).complete();
-
-                    if (member != null && !member.getRoles().isEmpty()) {
-                        for (Role role : member.getRoles()) {
-                            lore.add(ChatColor.WHITE + "• " + role.getName());
-                        }
-                    } else {
-                        lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים בדיסקורד");
+            if (linked && discordMember != null) {
+                List<Role> roles = discordMember.getRoles();
+                if (!roles.isEmpty()) {
+                    for (Role role : roles) {
+                        lore.add(ChatColor.LIGHT_PURPLE + " • " + ChatColor.WHITE + role.getName());
                     }
-                } catch (Exception e) {
-                    lore.add(ChatColor.RED + "שגיאה בטעינת תפקידים משרת הדיסקורד");
+                } else {
+                    lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים בדיסקורד");
                 }
+            } else if (linked) {
+                lore.add(ChatColor.YELLOW + "טוען תפקידים משרת הדיסקורד...");
             } else {
-                lore.add(ChatColor.RED + "החשבון אינו מקושר לדיסקורד");
-                lore.add(ChatColor.YELLOW + "הקלד /link כדי לקשר");
+                lore.add(ChatColor.RED + "יש לקשר את החשבון קודם!");
             }
 
-            lore.add(ChatColor.DARK_GRAY + "-------------------");
+            lore.add(ChatColor.DARK_GRAY + "▪-----------------------▪");
             rolesMeta.setLore(lore);
             rolesItem.setItemMeta(rolesMeta);
         }
@@ -171,7 +199,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(ChatColor.DARK_BLUE + "פרופיל שחקן")) {
+        if (event.getView().getTitle().contains("פרופיל שחקן")) {
             event.setCancelled(true);
         }
     }
