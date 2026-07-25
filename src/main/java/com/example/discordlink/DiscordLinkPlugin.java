@@ -28,7 +28,6 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
     private JDA jda;
     private final Map<String, UUID> pendingCodes = new HashMap<>();
-    private final Map<UUID, String> linkedAccounts = new HashMap<>(); // UUID -> Discord User ID
 
     @Override
     public void onEnable() {
@@ -62,6 +61,11 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
         if (!(sender instanceof Player player)) return true;
 
         if (label.equalsIgnoreCase("link")) {
+            if (isLinked(player.getUniqueId())) {
+                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! רשום /profile למצבו.");
+                return true;
+            }
+
             String code = generateCode();
             pendingCodes.put(code, player.getUniqueId());
 
@@ -92,10 +96,10 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             gui.setItem(i, banner);
         }
 
-        boolean isLinked = linkedAccounts.containsKey(player.getUniqueId());
-        String discordId = linkedAccounts.get(player.getUniqueId());
+        boolean linked = isLinked(player.getUniqueId());
+        String discordId = getDiscordId(player.getUniqueId());
 
-        // 2. תמונת פרופיל (הראש של השחקן הספציפי)
+        // 2. תמונת פרופיל (הראש)
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         if (skullMeta != null) {
@@ -103,8 +107,8 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             skullMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + player.getName());
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "סטטוס: " + (isLinked ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
-            if (!isLinked) {
+            lore.add(ChatColor.GRAY + "סטטוס: " + (linked ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
+            if (!linked) {
                 lore.add(ChatColor.YELLOW + "רשום /link כדי לקשר את החשבון!");
             }
             skullMeta.setLore(lore);
@@ -120,14 +124,14 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "-------------------");
             lore.add(ChatColor.GRAY + "שם במשחק: " + ChatColor.WHITE + player.getName());
-            lore.add(ChatColor.GRAY + "מצב אימות: " + (isLinked ? ChatColor.GREEN + "מאושר ✔" : ChatColor.RED + "לא מקושר ✖"));
+            lore.add(ChatColor.GRAY + "מצב אימות: " + (linked ? ChatColor.GREEN + "מאושר ✔" : ChatColor.RED + "לא מקושר ✖"));
             lore.add(ChatColor.DARK_GRAY + "-------------------");
             aboutMeta.setLore(lore);
             aboutBook.setItemMeta(aboutMeta);
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים בדיסקורד (טעינה דינמית מהדיסקורד)
+        // 4. תפקידים בדיסקורד
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
@@ -135,8 +139,8 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "-------------------");
 
-            if (isLinked && jda != null && !jda.getGuilds().isEmpty()) {
-                Guild guild = jda.getGuilds().get(0); // השרת הראשי
+            if (linked && jda != null && !jda.getGuilds().isEmpty()) {
+                Guild guild = jda.getGuilds().get(0);
                 Member member = (discordId != null) ? guild.getMemberById(discordId) : null;
 
                 if (member != null && !member.getRoles().isEmpty()) {
@@ -144,10 +148,11 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
                         lore.add(ChatColor.WHITE + "• " + role.getName());
                     }
                 } else {
-                    lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים");
+                    lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים בדיסקורד");
                 }
             } else {
                 lore.add(ChatColor.RED + "החשבון אינו מקושר לדיסקורד");
+                lore.add(ChatColor.YELLOW + "הקלד /link כדי לקשר");
             }
 
             lore.add(ChatColor.DARK_GRAY + "-------------------");
@@ -166,6 +171,19 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
         }
     }
 
+    public void saveLinkedAccount(UUID playerUUID, String discordId) {
+        getConfig().set("linked-users." + playerUUID.toString(), discordId);
+        saveConfig();
+    }
+
+    public boolean isLinked(UUID playerUUID) {
+        return getConfig().contains("linked-users." + playerUUID.toString());
+    }
+
+    public String getDiscordId(UUID playerUUID) {
+        return getConfig().getString("linked-users." + playerUUID.toString());
+    }
+
     private String generateCode() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder();
@@ -177,5 +195,4 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
     }
 
     public Map<String, UUID> getPendingCodes() { return pendingCodes; }
-    public Map<UUID, String> getLinkedAccounts() { return linkedAccounts; }
 }
