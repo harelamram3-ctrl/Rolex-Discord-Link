@@ -10,6 +10,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,7 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
-public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
+public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Listener {
 
     private JDA jda;
     private final Map<String, UUID> pendingCodes = new HashMap<>();
@@ -43,8 +46,8 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
         if (getCommand("link") != null) getCommand("link").setExecutor(this);
         if (getCommand("profile") != null) getCommand("profile").setExecutor(this);
 
-        // הגנה על תפריט ה-GUI שלא יוכלו לקחת פריטים
-        Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
+        // רישום הגנה על ה-GUI מפני לקחת חפצים
+        getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
@@ -76,7 +79,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
     private void openProfileGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_BLUE + "פרופיל שחקן");
 
-        // 1. באנר עליון (זכוכית סגולה)
+        // 1. באנר עליון
         ItemStack banner = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
         ItemMeta bannerMeta = banner.getItemMeta();
         if (bannerMeta != null) {
@@ -87,7 +90,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
             gui.setItem(i, banner);
         }
 
-        // 2. תמונת פרופיל (הראש של השחקן באמצע)
+        // 2. תמונת פרופיל (הראש)
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         if (skullMeta != null) {
@@ -103,7 +106,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
         }
         gui.setItem(13, skull);
 
-        // 3. תיאור / אודות (About Me)
+        // 3. תיאור (About Me)
         ItemStack aboutBook = new ItemStack(Material.WRITABLE_BOOK);
         ItemMeta aboutMeta = aboutBook.getItemMeta();
         if (aboutMeta != null) {
@@ -119,7 +122,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים ותגים בדיסקורד (Roles)
+        // 4. תפקידים (Roles)
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
@@ -136,6 +139,13 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor {
         gui.setItem(15, rolesItem);
 
         player.openInventory(gui);
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getView().getTitle().equals(ChatColor.DARK_BLUE + "פרופיל שחקן")) {
+            event.setCancelled(true); // נעילת ה-GUI
+        }
     }
 
     private String generateCode() {
