@@ -32,10 +32,10 @@ public class DiscordListener extends ListenerAdapter {
 
                 String mcName = (player != null) ? player.getName() : "Player";
                 
-                // שמירת ה-ID האישי של משתמש הדיסקורד עבור ה-GUI
-                plugin.getLinkedAccounts().put(playerUUID, event.getAuthor().getId());
+                // שמירת ה-ID בקובץ ההגדרות (Config) לתמיד
+                plugin.saveLinkedAccount(playerUUID, event.getAuthor().getId());
 
-                // שינוי ניקניים בדיסקורד לשם המשחק
+                // שינוי ניקניים בדיסקורד
                 try {
                     event.getGuild().modifyNickname(event.getMember(), mcName).queue(
                         s -> {},
