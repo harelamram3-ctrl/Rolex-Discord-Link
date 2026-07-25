@@ -2,6 +2,9 @@ package com.example.discordlink;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -25,7 +28,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
     private JDA jda;
     private final Map<String, UUID> pendingCodes = new HashMap<>();
-    private final Map<UUID, String> linkedAccounts = new HashMap<>();
+    private final Map<UUID, String> linkedAccounts = new HashMap<>(); // UUID -> Discord User ID
 
     @Override
     public void onEnable() {
@@ -46,7 +49,6 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
         if (getCommand("link") != null) getCommand("link").setExecutor(this);
         if (getCommand("profile") != null) getCommand("profile").setExecutor(this);
 
-        // רישום הגנה על ה-GUI מפני לקחת חפצים
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -90,7 +92,10 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             gui.setItem(i, banner);
         }
 
-        // 2. תמונת פרופיל (הראש)
+        boolean isLinked = linkedAccounts.containsKey(player.getUniqueId());
+        String discordId = linkedAccounts.get(player.getUniqueId());
+
+        // 2. תמונת פרופיל (הראש של השחקן הספציפי)
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         if (skullMeta != null) {
@@ -98,40 +103,53 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             skullMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + player.getName());
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Discord Tag: " + ChatColor.WHITE + (linkedAccounts.getOrDefault(player.getUniqueId(), "לא מקושר")));
-            lore.add("");
-            lore.add(ChatColor.GRAY + "סטטוס: " + (linkedAccounts.containsKey(player.getUniqueId()) ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
+            lore.add(ChatColor.GRAY + "סטטוס: " + (isLinked ? ChatColor.GREEN + "● מאומת ומקושר" : ChatColor.RED + "● לא מאומת"));
+            if (!isLinked) {
+                lore.add(ChatColor.YELLOW + "רשום /link כדי לקשר את החשבון!");
+            }
             skullMeta.setLore(lore);
             skull.setItemMeta(skullMeta);
         }
         gui.setItem(13, skull);
 
-        // 3. תיאור (About Me)
+        // 3. אודות
         ItemStack aboutBook = new ItemStack(Material.WRITABLE_BOOK);
         ItemMeta aboutMeta = aboutBook.getItemMeta();
         if (aboutMeta != null) {
-            aboutMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "📝 אודות (About Me)");
+            aboutMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "📝 אודות השחקן");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "-------------------");
-            lore.add(ChatColor.YELLOW + "Owner in: " + ChatColor.WHITE + "RolexNetWork ⚡ Offical");
-            lore.add(ChatColor.AQUA + "Link: " + ChatColor.UNDERLINE + "discord.gg/BTfmJQhnrC");
-            lore.add(ChatColor.GRAY + "RolexNetWork - ComeBack");
+            lore.add(ChatColor.GRAY + "שם במשחק: " + ChatColor.WHITE + player.getName());
+            lore.add(ChatColor.GRAY + "מצב אימות: " + (isLinked ? ChatColor.GREEN + "מאושר ✔" : ChatColor.RED + "לא מקושר ✖"));
             lore.add(ChatColor.DARK_GRAY + "-------------------");
             aboutMeta.setLore(lore);
             aboutBook.setItemMeta(aboutMeta);
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים (Roles)
+        // 4. תפקידים בדיסקורד (טעינה דינמית מהדיסקורד)
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
             rolesMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "🏷️ תפקידים בדיסקורד");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "-------------------");
-            lore.add(ChatColor.GOLD + "• Owner");
-            lore.add(ChatColor.LIGHT_PURPLE + "• RolexNetWork Booster");
-            lore.add(ChatColor.GREEN + "• MC Real player");
+
+            if (isLinked && jda != null && !jda.getGuilds().isEmpty()) {
+                Guild guild = jda.getGuilds().get(0); // השרת הראשי
+                Member member = (discordId != null) ? guild.getMemberById(discordId) : null;
+
+                if (member != null && !member.getRoles().isEmpty()) {
+                    for (Role role : member.getRoles()) {
+                        lore.add(ChatColor.WHITE + "• " + role.getName());
+                    }
+                } else {
+                    lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים");
+                }
+            } else {
+                lore.add(ChatColor.RED + "החשבון אינו מקושר לדיסקורד");
+            }
+
             lore.add(ChatColor.DARK_GRAY + "-------------------");
             rolesMeta.setLore(lore);
             rolesItem.setItemMeta(rolesMeta);
@@ -144,7 +162,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getView().getTitle().equals(ChatColor.DARK_BLUE + "פרופיל שחקן")) {
-            event.setCancelled(true); // נעילת ה-GUI
+            event.setCancelled(true);
         }
     }
 
