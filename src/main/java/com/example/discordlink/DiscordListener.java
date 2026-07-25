@@ -31,11 +31,11 @@ public class DiscordListener extends ListenerAdapter {
                 Player player = Bukkit.getPlayer(playerUUID);
 
                 String mcName = (player != null) ? player.getName() : "Player";
-                String discordUser = event.getAuthor().getAsTag();
+                
+                // שמירת ה-ID האישי של משתמש הדיסקורד עבור ה-GUI
+                plugin.getLinkedAccounts().put(playerUUID, event.getAuthor().getId());
 
-                plugin.getLinkedAccounts().put(playerUUID, discordUser);
-
-                // ניסיון לשנות ניקניים
+                // שינוי ניקניים בדיסקורד לשם המשחק
                 try {
                     event.getGuild().modifyNickname(event.getMember(), mcName).queue(
                         s -> {},
@@ -43,7 +43,7 @@ public class DiscordListener extends ListenerAdapter {
                     );
                 } catch (Exception ignored) {}
 
-                // ניסיון לתת רול
+                // מתן הרול בדיסקורד
                 try {
                     Role role = event.getGuild().getRoleById(ROLE_ID);
                     if (role != null) {
@@ -54,10 +54,10 @@ public class DiscordListener extends ListenerAdapter {
                     }
                 } catch (Exception ignored) {}
 
-                event.getChannel().sendMessage("✅ החשבון קושר בהצלחה! משתמש הדיסקורד " + discordUser + " קושר למיינקראפט.").queue();
+                event.getChannel().sendMessage("✅ החשבון קושר בהצלחה! המשתמש **" + event.getAuthor().getAsTag() + "** קושר למיינקראפט.").queue();
 
                 if (player != null && player.isOnline()) {
-                    player.sendMessage("§a[Discord] החשבון שלך קושר בהצלחה!");
+                    player.sendMessage("§a[Discord] החשבון שלך קושר בהצלחה! הקלד §f/profile §aכדי לראות את הפרופיל האישי שלך.");
                 }
             } else {
                 event.getChannel().sendMessage("❌ קוד אימות לא תקין או שפג תוקפו.").queue();
