@@ -62,7 +62,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
         if (label.equalsIgnoreCase("link")) {
             if (isLinked(player.getUniqueId())) {
-                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! רשום /profile לצפייה בפרטים.");
+                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! הקלד /profile לצפייה בפרטים.");
                 return true;
             }
 
@@ -131,7 +131,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים בדיסקורד (טעינה בלייב)
+        // 4. תפקידים בדיסקורד (משיכה ישירה מדיסקורד)
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
@@ -139,16 +139,21 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "-------------------");
 
-            if (linked && jda != null && !jda.getGuilds().isEmpty()) {
-                Guild guild = jda.getGuilds().get(0);
-                Member member = (discordId != null) ? guild.getMemberById(discordId) : null;
+            if (linked && jda != null && !jda.getGuilds().isEmpty() && discordId != null) {
+                try {
+                    Guild guild = jda.getGuilds().get(0);
+                    // משיכה ישירה משרתי דיסקורד בלייב
+                    Member member = guild.retrieveMemberById(discordId).complete();
 
-                if (member != null && !member.getRoles().isEmpty()) {
-                    for (Role role : member.getRoles()) {
-                        lore.add(ChatColor.WHITE + "• " + role.getName());
+                    if (member != null && !member.getRoles().isEmpty()) {
+                        for (Role role : member.getRoles()) {
+                            lore.add(ChatColor.WHITE + "• " + role.getName());
+                        }
+                    } else {
+                        lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים בדיסקורד");
                     }
-                } else {
-                    lore.add(ChatColor.GRAY + "אין תפקידים מיוחדים בדיסקורד");
+                } catch (Exception e) {
+                    lore.add(ChatColor.RED + "שגיאה בטעינת תפקידים משרת הדיסקורד");
                 }
             } else {
                 lore.add(ChatColor.RED + "החשבון אינו מקושר לדיסקורד");
