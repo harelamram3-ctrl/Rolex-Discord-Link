@@ -62,7 +62,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
 
         if (label.equalsIgnoreCase("link")) {
             if (isLinked(player.getUniqueId())) {
-                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! רשום /profile למצבו.");
+                player.sendMessage(ChatColor.GREEN + "[Discord] החשבון שלך כבר מקושר לדיסקורד! רשום /profile לצפייה בפרטים.");
                 return true;
             }
 
@@ -131,7 +131,7 @@ public class DiscordLinkPlugin extends JavaPlugin implements CommandExecutor, Li
         }
         gui.setItem(11, aboutBook);
 
-        // 4. תפקידים בדיסקורד
+        // 4. תפקידים בדיסקורד (טעינה בלייב)
         ItemStack rolesItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta rolesMeta = rolesItem.getItemMeta();
         if (rolesMeta != null) {
